@@ -35,7 +35,13 @@ Existing boards and documents are preserved. Managed profile blocks are refreshe
 
 ## Install
 
-Install from GitHub with Codex `skill-installer`, or copy this repository to your personal Codex skills directory under the name `project-task-system`. Install the TaskPlanner plugin separately from the Codex plugin catalog when native board commands are desired.
+Ask Codex:
+
+```text
+Use $skill-installer to install the skill from https://github.com/neuro-boss/project-task-system
+```
+
+Alternatively, copy this repository to your personal Codex skills directory under the name `project-task-system`. Install the TaskPlanner plugin separately from the Codex plugin catalog when native board commands are desired.
 
 ## License
 

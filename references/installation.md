@@ -5,7 +5,7 @@
 Recommended Codex setup:
 
 1. Install the TaskPlanner plugin from the Codex plugin catalog. It supplies native board commands and keeps its managed profile block synchronized.
-2. Install this skill from its GitHub repository with the built-in `skill-installer`, or copy this repository into the personal Codex skills directory as `project-task-system`.
+2. Install `https://github.com/neuro-boss/project-task-system` with the built-in `skill-installer`, or copy this repository into the personal Codex skills directory as `project-task-system`.
 3. Restart or reload Codex if the new skill is not discovered immediately.
 4. Open the target repository and invoke `$project-task-system`.
 
