@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Task System"
+  short_description: "Bootstrap a reusable TaskPlanner project system"
+  default_prompt: "Use $project-task-system to initialize this repository with a safe TaskPlanner board, agent profiles, and project documentation."

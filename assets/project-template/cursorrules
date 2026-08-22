@@ -1,0 +1,15 @@
+# %PROJECT_NAME% — Cursor instructions
+
+Read and follow `AGENTS.md`; it is the canonical cross-agent profile for this repository.
+
+<!-- PROJECT-SYSTEM:START -->
+
+Read `docs/current-task.md` first, inspect the working tree, preserve unrelated changes, and never invent commands or results. Do not expose secrets or perform destructive, production, publication, commit, or push operations without explicit authorization. Keep relevant documentation synchronized with significant changes.
+
+<!-- PROJECT-SYSTEM:END -->
+
+<!-- TASKPLANNER:START -->
+
+Use `.tasks/` as the project board. Move the complete task section into `IN_PROGRESS.md` and add a plan before implementation; move it to `DONE.md` and update `WORK_LOG.md` only after verification. Never change IDs or unrelated tasks.
+
+<!-- TASKPLANNER:END -->
