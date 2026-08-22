@@ -222,8 +222,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--project-name", help="Display name used in new templates")
     parser.add_argument(
         "--taskplanner-version",
-        default="2.1.1",
-        help="Version recorded only when creating a new board (default: 2.1.1)",
+        default="2.1.4",
+        help="Version recorded only when creating a new board (default: 2.1.4)",
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--apply", action="store_true", help="Write the planned changes")

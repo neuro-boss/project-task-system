@@ -13,7 +13,7 @@ A reusable Codex skill for adding a Git-tracked TaskPlanner board, agent instruc
 | Project context    | `docs/*.md`                                                                | Current work, product, architecture, integrations, decisions, deployment, and quality |
 | Pull requests      | `.github/pull_request_template.md`                                         | Consistent verification and documentation checklist                                   |
 
-TaskPlanner is the only recommended plugin. The files are deliberately plain Markdown and JSON, so the workflow still works if the plugin or its MCP tools are unavailable.
+TaskPlanner is the only recommended plugin. New boards currently record compatibility with TaskPlanner `2.1.4`; a different installed version can be supplied explicitly with `--taskplanner-version`. The files are deliberately plain Markdown and JSON, so the workflow still works if the plugin or its MCP tools are unavailable.
 
 ## Use
 

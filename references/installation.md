@@ -11,6 +11,8 @@ Recommended Codex setup:
 
 TaskPlanner is the only recommended workflow plugin. GitHub access is optional and needed only for remote publication. The generated board remains plain Markdown and JSON, so it can still be edited and reviewed without a plugin.
 
+The bootstrap default is TaskPlanner `2.1.4`. If a newer plugin is installed, pass its exact semantic version with `--taskplanner-version`; an existing board is always preserved and is never downgraded.
+
 ## Publish this skill
 
 Keep `SKILL.md`, `agents/`, `scripts/`, `references/`, and `assets/` together at the repository root. Before publication:
