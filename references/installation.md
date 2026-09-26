@@ -24,3 +24,6 @@ Keep `SKILL.md`, `agents/`, `scripts/`, `references/`, and `assets/` together at
 5. Check that no secrets, private URLs, personal data, or product-specific instructions are present.
 
 The repository README is for people; `SKILL.md` is the instruction entrypoint used by Codex.
+
+The optional YouGile connector is documented separately in [yougile.md](yougile.md). Its installer and assets must be included when publishing this skill. It is not part of the default TaskPlanner bootstrap.
+The reusable Russian prompt is [yougile-prompt.ru.txt](yougile-prompt.ru.txt).

@@ -21,3 +21,5 @@ The bootstrap can create:
 ## Generic defaults
 
 The generated rules intentionally avoid language-, framework-, cloud-, database-, and vendor-specific commands. A project should add its confirmed commands and invariants after initialization. Secrets never belong in the board, profiles, documentation templates, logs, examples, or Git history.
+
+The optional `bootstrap_yougile.py` is a separate, explicitly requested phase. It may add only its connector scripts, a safe example config, Git ignore entries, and a `YOUGILE-SYNC` block in existing agent profiles. It must not overwrite a differing existing connector, local config, mapping, key, or unrelated profile content.

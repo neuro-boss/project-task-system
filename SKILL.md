@@ -1,6 +1,6 @@
 ---
 name: project-task-system
-description: Initialize or audit a repository-wide project operating system with a Git-tracked TaskPlanner board, managed agent profiles, and lightweight product, architecture, decision, integration, deployment, and current-work documents. Use for bootstrapping a new project or adding the same workflow safely to an existing repository.
+description: Initialize or audit a repository-wide project operating system with a Git-tracked TaskPlanner board, managed agent profiles, and lightweight product, architecture, decision, integration, deployment, and current-work documents. Optionally install the local TaskPlanner-to-YouGile connector. Use for bootstrapping a new project or adding the same workflow safely to an existing repository.
 ---
 
 # Project Task System
@@ -40,4 +40,5 @@ Do not install plugins, create repositories, commit, push, deploy, or modify rem
 
 - Read [references/installation.md](references/installation.md) when installing the skill or publishing it for reuse.
 - Read [references/template-contract.md](references/template-contract.md) before changing the generated file set or merge behavior.
+- Read [references/yougile.md](references/yougile.md) when the user asks to connect, install, or monitor TaskPlanner tasks in YouGile. This is an optional second phase after the TaskPlanner board is present; preview before applying and never reuse another user's key or IDs.
 - Use the files under `assets/project-template/` as output templates, not as additional instructions.
