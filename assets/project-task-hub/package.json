@@ -1,0 +1,8 @@
+{
+  "name": "project-task-hub",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test test/hub.test.mjs test/onboarding.test.mjs", "status": "node cli.mjs status", "sync": "node cli.mjs sync --apply" }
+}

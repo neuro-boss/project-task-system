@@ -6,6 +6,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import os
+from unittest.mock import patch
+from uuid import uuid4
 from pathlib import Path
 
 
@@ -30,6 +33,11 @@ def prepare_board(target: Path) -> None:
 
 
 class BootstrapYouGileTests(unittest.TestCase):
+    def setUp(self):
+        isolated = patch.dict(os.environ, {'PROJECT_TASK_HUB_POINTER': str(Path(tempfile.gettempdir()) / ('missing-hub-' + uuid4().hex + '.json'))})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+
     def test_full_bootstrap_in_empty_git_repository(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)

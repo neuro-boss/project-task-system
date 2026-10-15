@@ -1,0 +1,32 @@
+{
+  "baseUrl": "https://yougile.com/api-v2",
+  "apiKeyFile": ".tasks/yougile.api-key.txt",
+  "workspaceKey": "replace-with-stable-unique-repository-name",
+  "projectId": "replace-project-id",
+  "boardId": "replace-board-id",
+  "columns": {
+    "Backlog": "replace-backlog-column-id",
+    "Next": "replace-next-column-id",
+    "In Progress": "replace-in-progress-column-id",
+    "Done": "replace-done-column-id",
+    "Rejected": "replace-rejected-column-id"
+  },
+  "activeStates": ["Backlog", "Next", "In Progress"],
+  "defaultEstimate": "M",
+  "estimateHours": { "XS": 2, "S": 3, "M": 6, "L": 18, "XL": 30 },
+  "workday": { "startHour": 10, "hours": 6, "timezoneOffsetMinutes": 0 },
+  "historyTimeZone": "UTC",
+  "priorityColors": {
+    "P0": "task-red",
+    "P1": "task-pink",
+    "P2": "task-yellow",
+    "P3": "task-blue",
+    "P4": "task-gray"
+  },
+  "modules": [],
+  "moduleStickerName": null,
+  "moduleFallback": null,
+  "moduleOverrides": {},
+  "minRequestIntervalMs": 1250,
+  "timeoutMs": 15000
+}

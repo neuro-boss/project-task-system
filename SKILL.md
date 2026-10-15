@@ -1,6 +1,6 @@
 ---
 name: project-task-system
-description: Initialize or audit a repository-wide project operating system with a Git-tracked TaskPlanner board, managed agent profiles, and lightweight product, architecture, decision, integration, deployment, and current-work documents. Optionally install the local TaskPlanner-to-YouGile connector. Use for bootstrapping a new project or adding the same workflow safely to an existing repository.
+description: Initialize or audit a repository-wide project operating system with a Git-tracked TaskPlanner board, managed agent profiles, and lightweight product, architecture, decision, integration, deployment, and current-work documents. Optionally configure a shared YouGile hub with project-onboarding hooks and hourly fallback, or install a standalone connector. Use for bootstrapping a new project or adding the same workflow safely to an existing repository.
 ---
 
 # Project Task System
@@ -17,7 +17,7 @@ Create a portable project-management layer without coupling it to a particular p
    python scripts/bootstrap_project.py --target <repository> --project-name "<name>"
    ```
 
-4. Apply only after checking the preview:
+4. Apply only after checking the preview. If the user previously enabled a local hub policy, this also connects the project inside its approved roots:
 
    ```bash
    python scripts/bootstrap_project.py --target <repository> --project-name "<name>" --apply
@@ -35,6 +35,22 @@ The bootstrap is additive by default. It does not overwrite an existing TaskPlan
 - GitHub CLI or a GitHub connector is optional and is used only after the user explicitly requests publication.
 
 Do not install plugins, create repositories, commit, push, deploy, or modify remote state merely because the skill was invoked. Obtain or rely on explicit authorization for those operations.
+
+## Optional shared YouGile setup
+
+For cross-project discovery, connection at project creation, or hourly retry, read
+[references/yougile-hub.md](references/yougile-hub.md). Use the bundled
+`scripts/bootstrap_hub.py` to install a persistent runtime outside this skill.
+The user chooses approved roots and an existing company profile once. Enable
+remote onboarding and the OS schedule only within that authorized scope.
+
+Normal bootstrap reads `project-task-hub.json` in `CODEX_HOME` (default
+`~/.codex`). Without an enabled pointer it behaves as before. With a previously
+authorized policy, run the usual preview/apply workflow: the post-apply hook
+preserves existing connections or provisions a new board. Do not reinstall a
+standalone connector over a hub bridge or request the same approval/key again.
+Report pending connection on failure; hourly fallback retries inside approved
+roots. Task edits still require the immediate sync command in project rules.
 
 ## Resources
 

@@ -27,3 +27,15 @@ The repository README is for people; `SKILL.md` is the instruction entrypoint us
 
 The optional YouGile connector is documented separately in [yougile.md](yougile.md). Its installer and assets must be included when publishing this skill. It is not part of the default TaskPlanner bootstrap.
 The reusable Russian prompt is [yougile-prompt.ru.txt](yougile-prompt.ru.txt).
+
+
+## Shared YouGile hub
+
+For opt-in multi-project onboarding, include `assets/project-task-hub/`,
+`scripts/bootstrap_hub.py`, `scripts/project_hub_hook.py` and the hub reference.
+See [yougile-hub.md](yougile-hub.md). The runtime installs outside the skill directory;
+upgrading/reinstalling the skill preserves the user's local pointer and runtime state.
+Upgrade a runtime with the same installer and arguments after stopping its scheduled
+job; customized runtime files are preserved for review. Re-enable the existing
+Windows schedule with --schedule after checking the preview. Never publish a
+user's pointer, .local directory, company configuration, maps, keys or private logs.

@@ -275,6 +275,8 @@ def main(argv: list[str] | None = None) -> int:
         print("Post-apply validation: OK")
     else:
         print("No files were changed. Re-run with --apply after reviewing the preview.")
+    from project_hub_hook import run_hub_hook
+    run_hub_hook(target, args.apply)
     return 0
 
 
