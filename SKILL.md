@@ -1,6 +1,6 @@
 ---
 name: project-task-system
-description: Initialize or audit a repository-wide project operating system with a Git-tracked TaskPlanner board, managed agent profiles, and lightweight product, architecture, decision, integration, deployment, and current-work documents. Optionally configure a shared YouGile hub with project-onboarding hooks and hourly fallback, or install a standalone connector. Use for bootstrapping a new project or adding the same workflow safely to an existing repository.
+description: Initialize or audit a repository-wide project operating system with a Git-tracked TaskPlanner board, managed agent profiles, and lightweight product, architecture, decision, integration, deployment, and current-work documents. Optionally configure a shared YouGile hub with project-onboarding hooks and hourly fallback, or install a standalone connector. Use for bootstrapping a project, adding this workflow safely, or generating project-work activity reports.
 ---
 
 # Project Task System
@@ -58,3 +58,15 @@ roots. Task edits still require the immediate sync command in project rules.
 - Read [references/template-contract.md](references/template-contract.md) before changing the generated file set or merge behavior.
 - Read [references/yougile.md](references/yougile.md) when the user asks to connect, install, or monitor TaskPlanner tasks in YouGile. This is an optional second phase after the TaskPlanner board is present; preview before applying and never reuse another user's key or IDs.
 - Use the files under `assets/project-template/` as output templates, not as additional instructions.
+
+## Work journals, reports and project passports
+
+For a work report by day/week/month, a cross-project overview, a significant-work
+journal or a project passport, read [references/activity-reports.md](references/activity-reports.md).
+Locate the enabled local hub pointer and use its CLI. Do not initialize boards or
+change YouGile destinations just to produce a report. Default reports cover all
+registered projects; pass the requested project explicitly when scoped. State the
+actual calendar interval and coverage gaps; never infer hours from task estimates.
+After non-task research/decisions/blockers, record a short confirmed note through
+`log`; Done and WORK_LOG are collected automatically. Maintain an existing
+`docs/project-passport.md` when public links or confirmed operating facts change.

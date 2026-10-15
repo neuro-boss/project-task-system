@@ -25,7 +25,8 @@ if start in text and prelude not in text:
     raise SystemExit('Existing managed bridge differs; preserved for review.')
 bridge = root / 'tools' / 'taskplanner-yougile-hub.mjs'
 bridge_bytes = (hub / 'assets' / bridge.name).read_bytes()
-if bridge.exists() and bridge.read_bytes() != bridge_bytes:
+previous_bridge_hashes = {'b7fe2f35fc11a2280e9431907167422bddecc45b820595d58a64a28dfe23aa04', '2244af7bd70529a215ba6cb361a9159d971672fad74a50c9fb26ded55cc763df'}
+if bridge.exists() and bridge.read_bytes() != bridge_bytes and hashlib.sha256(bridge.read_bytes()).hexdigest() not in previous_bridge_hashes:
     raise SystemExit('Existing customized bridge preserved; review required.')
 profiles = [root / n for n in ['AGENTS.md', 'CLAUDE.md', '.cursorrules'] if (root / n).exists()]
 rules = '''\n<!-- PROJECT-TASK-HUB:START -->
@@ -36,6 +37,9 @@ rules = '''\n<!-- PROJECT-TASK-HUB:START -->
 - Не меняй workspaceKey, текущие ID доски или карту карточек ради повторного подключения. Не удаляй карту после сетевой ошибки.
 - Служебный указатель `.tasks/yougile.hub.local.json` локален и исключён из Git. Без него исходный коннектор сохраняет самостоятельную работу.
 - Старые Done/Rejected не импортируются фоном. Ошибка синхронизации не отменяет изменение локальной задачи.
+- Значимые исследования, решения и блокеры без перехода задачи записывай кратко: `node tools/taskplanner-yougile-hub.mjs log --kind research --summary "Короткий подтверждённый итог" --task TASK-ID --apply`. Для сложного текста используй `--file путь-к-локальному-JSON`. Не записывай ключи, персональные данные и приватные ссылки.
+- Не дублируй запись о Done вручную: WORK_LOG и фактические даты автоматически попадают в журнал. Отчёт: `node tools/taskplanner-yougile-hub.mjs report --period week` (также day/month, --date или --from/--to).
+- Если есть `docs/project-passport.md`, обновляй его при изменении публичных ссылок, интеграций и правил работы; отмечай источник и дату проверки. Не заменяй неизвестное догадкой.
 <!-- PROJECT-TASK-HUB:END -->
 '''
 changes = ['local ignored hub pointer', 'add optional route before original connector', 'add bridge module', 'append missing agent rule block', 'append ignore rule']
@@ -43,14 +47,14 @@ print(json.dumps({'project': str(root), 'mode': 'apply' if args.apply else 'prev
 if args.apply:
     backup = home / 'backups' / hashlib.sha256(str(root).encode()).hexdigest()[:20]
     backup.mkdir(parents=True, exist_ok=True)
-    for path in [source, root / '.gitignore', *profiles]:
+    for path in [source, bridge, root / '.gitignore', *profiles]:
         if path.exists():
             dest = backup / path.name
             if not dest.exists():
                 shutil.copyfile(path, dest)
     pointer = {'schemaVersion': 1, 'enabled': True, 'cli': str(hub / 'cli.mjs'), 'home': str(home)}
     (root / '.tasks' / 'yougile.hub.local.json').write_text(json.dumps(pointer, indent=2) + '\n', encoding='utf-8')
-    if not bridge.exists():
+    if not bridge.exists() or bridge.read_bytes() != bridge_bytes:
         bridge.write_bytes(bridge_bytes)
     if start not in text:
         source.write_bytes(prelude.encode() + original)
@@ -59,7 +63,7 @@ if args.apply:
         block = re.compile(rb'\n?<!-- PROJECT-TASK-HUB:START -->.*?<!-- PROJECT-TASK-HUB:END -->\r?\n?', re.S)
         path.write_bytes(block.sub(lambda _: rules.encode('utf-8'), existing, count=1) if block.search(existing) else existing + rules.encode('utf-8'))
     note = '''\n<!-- PROJECT-TASK-HUB:START -->
-## Фоновая синхронизация задач
+## Фоновая синхронизация задач — 2026-10-15
 
 Проект подключён к локальному Project Task Hub. На компьютере владельца скрытая
 задача Windows раз в час подхватывает пропущенные изменения и новые проекты; задачи остаются источником истины,

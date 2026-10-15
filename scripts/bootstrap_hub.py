@@ -120,6 +120,14 @@ def install(args) -> int:
         print('Offline discovery failed; no hook or schedule was enabled. Inspect the runtime settings.', file=sys.stderr)
         return 1
     registry = read_json(home / 'registry.json')
+    for project in registry['projects']:
+        target = Path(project['path']).resolve()
+        if not any(target != Path(folder) and target.is_relative_to(Path(folder)) for folder in settings['roots']):
+            continue
+        activity = subprocess.run([sys.executable, str(root / 'install-activity.py'), '--project', str(target), '--home', str(home), '--apply'], capture_output=True)
+        if activity.returncode:
+            print('Activity rule conflict; original project files preserved. Resolve before enabling the hook/schedule.', file=sys.stderr)
+            return 1
     settings['autoOnboarding'].setdefault('excludedProjectIds', [p['id'] for p in registry['projects'] if not p['enabled'] and not p['configured']])
     atomic_json(home / 'settings.json', settings)
     atomic_json(home / 'installed-files.json', dict(schemaVersion=1, files={name: digest(data) for name, data in files.items()}))

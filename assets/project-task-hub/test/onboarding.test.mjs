@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { atomicJson, json } from '../lib/storage.mjs';
 import { scan, findProject, updateRegistry } from '../lib/registry.mjs';
 import { eligible, onboard, onboardDiscovered, registerAndOnboard, installBridge } from '../lib/onboarding.mjs';
 import { newProjectConfig, provision, columnDefaults } from '../lib/provision.mjs';
+import { fileURLToPath } from 'node:url';
 
 async function fixture(t, configured = false) {
   const base = await mkdtemp(join(tmpdir(), 'hub-onboard-'));
@@ -23,6 +23,7 @@ async function fixture(t, configured = false) {
   const calls = [];
   const operations = Object.fromEntries(['provision', 'bridge', 'sync'].map(name => [name, async () => { calls.push(name); }]));
   operations.adopt = async () => { calls.push('adopt'); await updateRegistry(home, r => { r.projects[0].enabled = true; }); };
+  operations.activity = async () => {};
   return { base, home, roots, path, project, settings, calls, operations };
 }
 
@@ -107,6 +108,17 @@ test('skill hook previews offline and invokes the configured CLI after apply onl
   await assert.rejects(readFile(log), { code: 'ENOENT' });
   assert.match(run('apply').stdout, /connected/);
   assert.deepEqual(await json(log), ['onboard', '--home', f.home, '--project', f.path, '--apply']);
+});
+
+test('project bridge records a local note through the shared CLI without YouGile', async t => {
+  const f = await fixture(t, true); await mkdir(join(f.path, 'tools'));
+  await writeFile(join(f.path, 'tools/taskplanner-yougile-sync.mjs'), '// original\n');
+  await installBridge(f.home, f.project, {});
+  const bridge = join(f.path, 'tools/taskplanner-yougile-hub.mjs');
+  const child = spawnSync(process.execPath, [bridge, 'log', '--kind', 'research', '--summary', 'Confirmed local result', '--apply'], { encoding: 'utf8' });
+  assert.equal(child.status, 0, child.stderr);
+  assert.equal(JSON.parse(child.stdout).mode, 'recorded');
+  assert.equal((await json(join(f.home, `activity-${f.project.id}.json`))).events[0].summary, 'Confirmed local result');
 });
 
 test('new project inherits the approved calendar, not project IDs or categories', () => {

@@ -23,13 +23,15 @@ export async function eligible(project, policy) {
   return false;
 }
 
-export async function installBridge(home, project, policy) {
+async function runInstaller(home, project, policy, filename) {
   await new Promise((resolve, reject) => {
-    const child = spawn(policy.python || 'python', [join(hub, 'install-bridge.py'), '--project', project.path, '--home', home, '--apply'], { windowsHide: true, stdio: 'ignore' });
+    const child = spawn(policy.python || 'python', [join(hub, filename), '--project', project.path, '--home', home, '--apply'], { windowsHide: true, stdio: 'ignore' });
     child.once('error', () => reject(Object.assign(new Error('Bridge installer could not start.'), { safe: true })));
     child.once('exit', code => code === 0 ? resolve() : reject(Object.assign(new Error('Bridge installer requires review; original files preserved.'), { safe: true })));
   });
 }
+export const installBridge = (home, project, policy) => runInstaller(home, project, policy, 'install-bridge.py');
+export const installActivityRules = (home, project, policy) => runInstaller(home, project, policy, 'install-activity.py');
 
 // Dependencies can be replaced by offline fixtures; production always uses the verified connector.
 export async function onboard(home, selector, settings, { apply = false, operations = {} } = {}) {
@@ -42,6 +44,7 @@ export async function onboard(home, selector, settings, { apply = false, operati
     return await withLock(join(home, `onboard-${project.id}.lock`), async () => {
       // Persist before the first network call so an interrupted setup is retried hourly.
       await updateRegistry(home, r => { r.projects.find(p => p.id === project.id).onboarding = { state: 'pending', attemptedAt: iso() }; });
+      await (operations.activity || installActivityRules)(home, project, policy);
       if (!project.configured) await (operations.provision || provision)(home, project.path, policy.profileFrom, policy.assets, { apply: true });
       await (operations.bridge || installBridge)(home, project, policy);
       await (operations.adopt || adopt)(home, project.id, settings, { apply: true });

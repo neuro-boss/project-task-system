@@ -1,5 +1,5 @@
 // Optional local routing layer. Without the ignored pointer file the original connector works normally.
-import { readFile } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -17,5 +17,15 @@ export async function routeToHub(moduleUrl) {
   const forwarded = [pointer.cli, 'sync', '--home', pointer.home, '--project', root, '--apply'];
   if (option('--task')) forwarded.push('--task', option('--task'));
   const child = spawnSync(process.execPath, forwarded, { stdio: 'inherit', windowsHide: true });
+  process.exit(child.status ?? 1);
+}
+
+// Direct local commands for work that has no task transition (research, decisions, blockers).
+if (process.argv[1] && await realpath(resolve(process.argv[1])).catch(() => null) === await realpath(fileURLToPath(import.meta.url))) {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const [command, ...args] = process.argv.slice(2);
+  if (!['log', 'report', 'collect', 'passport'].includes(command) || args.includes('--home') || args.includes('--project')) throw new Error('Use log, report, collect or passport for this project.');
+  const pointer = JSON.parse(await readFile(resolve(root, '.tasks/yougile.hub.local.json'), 'utf8'));
+  const child = spawnSync(process.execPath, [pointer.cli, command, '--home', pointer.home, '--project', root, ...args], { stdio: 'inherit', windowsHide: true });
   process.exit(child.status ?? 1);
 }

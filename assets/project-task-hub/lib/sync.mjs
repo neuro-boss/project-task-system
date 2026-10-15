@@ -4,6 +4,8 @@ import { pathToFileURL } from 'node:url';
 import { json, atomicJson, digest, withLock, sleep, iso, fail, safeError } from './storage.mjs';
 import { Api } from './api.mjs';
 import { decodeMapping, saveMappingEntry } from './project-state.mjs';
+import { renderMarkdown } from './markdown.mjs';
+import { collectActivity } from './activity.mjs';
 
 function inside(root, filename) {
   const path = resolve(root, filename); const rel = relative(root, path);
@@ -82,10 +84,8 @@ export function ownedPayload(payload, creating) {
   return result;
 }
 export function transportPayload(payload) {
-  // YouGile sanitizes descriptions as HTML. TaskPlanner bodies are source text;
-  // escape at the transport boundary so examples like <order[id]> survive.
   return { ...payload, ...(typeof payload.description === 'string' ? {
-    description: payload.description.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+    description: renderMarkdown(payload.description),
   } : {}) };
 }
 function stable(value) {
@@ -95,7 +95,7 @@ function stable(value) {
 }
 export const payloadHash = payload => digest(JSON.stringify(stable(payload)) ?? 'undefined');
 export function matchesOwned(remote, payload) {
-  const text = value => typeof value === 'string' ? value.replace(/\r\n/g, '\n') : value;
+  const text = value => typeof value === 'string' ? value.replace(/\r\n/g, '\n').replace(/<br\s*\/?>/gi, '<br>').replace(/<hr\s*\/?>/gi, '<hr>').replace(/<\/?(?:code|blockquote)>/gi, '') : value;
   const decodedText = value => typeof value === 'string' ? value.replace(/&(amp|lt|gt|quot|apos|#39|#x[0-9a-f]+|#\d+);/gi, (entity, code) => {
     const names = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" };
     if (names[code.toLowerCase()]) return names[code.toLowerCase()];
@@ -138,7 +138,7 @@ async function remoteCards(api, config) {
   }
   return cards;
 }
-async function buildOperations(snapshot, project, taskId) {
+export async function buildOperations(snapshot, project, taskId) {
   const { config, core, tasks, mapping } = snapshot;
   let anchor = dayAnchor(config); let forecastState;
   if (snapshot.mappingFormat === 'mapping' && snapshot.mappingState.forecasts) {
@@ -160,8 +160,9 @@ async function buildOperations(snapshot, project, taskId) {
     const classification = modules?.classifyTaskModule(task, config);
     const leadMagnet = config.leadMagnetStickerName ? modules?.classifyLeadMagnet(task)?.definition : null;
     if (config.leadMagnetStickerName && !leadMagnet) fail('LEAD_MAGNET', 'The existing lead-magnet classifier did not return a valid assignment.');
-    const payload = ownedPayload(core.buildYouGilePayload(task, forecasts.get(task.id), config, creating), creating);
-    const stablePayload = { ...payload }; delete stablePayload.idempotencyKey;
+    const sourcePayload = ownedPayload(core.buildYouGilePayload(task, forecasts.get(task.id), config, creating), creating);
+    const payload = transportPayload(sourcePayload);
+    const stablePayload = { ...sourcePayload }; delete stablePayload.idempotencyKey;
     return { taskId: task.id, state: task.state, remoteId: mapping[task.id] || null,
       module: classification?.module?.name || null, leadMagnet: leadMagnet?.name || null,
       ...(snapshot.mappingFormat === 'tasks' && core.fingerprint ? { nativeFingerprint: core.fingerprint({ payload: stablePayload, module: classification?.module?.key, leadMagnet: leadMagnet?.key }) } : {}), payload };
@@ -271,14 +272,14 @@ export async function syncProject(home, project, { apply = false, taskId, api: p
       if (remote?.deadline && payload.deadline) payload.deadline = { ...remote.deadline, ...payload.deadline };
       if (operation.remoteId) {
         delete payload.idempotencyKey;
-        await api.request('PUT', `/tasks/${operation.remoteId}`, transportPayload(payload)); result.updated++;
+        await api.request('PUT', `/tasks/${operation.remoteId}`, payload); result.updated++;
         if (!mappedRemoteId) {
           await saveMappingEntry(join(project.path, '.tasks/yougile.local-state.json'), operation.taskId, operation.remoteId, operation.nativeFingerprint);
           snapshot.mapping[operation.taskId] = operation.remoteId; result.recovered = (result.recovered || 0) + 1;
         }
       } else {
         if (!payload.idempotencyKey || payload.idempotencyKey !== `${snapshot.config.workspaceKey}:${operation.taskId}`) fail('IDEMPOTENCY', 'Stable task idempotency key is required.');
-        const created = await api.request('POST', '/tasks', transportPayload(payload));
+        const created = await api.request('POST', '/tasks', payload);
         if (!created?.id) fail('CREATE_RESPONSE', 'YouGile did not return the created card ID.');
         await saveMappingEntry(join(project.path, '.tasks/yougile.local-state.json'), operation.taskId, created.id, operation.nativeFingerprint);
         operation.remoteId = created.id; snapshot.mapping[operation.taskId] = created.id; result.created++;
@@ -303,8 +304,13 @@ export async function syncProject(home, project, { apply = false, taskId, api: p
 export async function recordSync(home, project, options) {
   const statusPath = join(home, `status-${project.id}.json`);
   const status = await json(statusPath, {});
+  let activityError;
+  if (options.apply && options.maxWrites !== 0) {
+    try { await collectActivity(home, project, { apply: true }); } catch (error) { activityError = safeError(error); }
+  }
   try {
     const result = await syncProject(home, project, options);
+    if (activityError) result.activityError = activityError;
     if (options.apply) await atomicJson(statusPath, { ...status, lastAttemptAt: iso(), lastSuccessAt: iso(), failures: 0, nextAttemptAt: null, error: null, result });
     return result;
   } catch (e) {

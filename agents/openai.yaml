@@ -1,4 +1,4 @@
 interface:
   display_name: "Project Task System"
-  short_description: "Bootstrap a reusable TaskPlanner project system"
-  default_prompt: "Use $project-task-system to initialize this repository with a safe TaskPlanner board, agent profiles, and project documentation."
+  short_description: "Project tasks, YouGile hub, work journals and reports"
+  default_prompt: "Use $project-task-system to manage this project's task system, YouGile hub, work journal, reports, or passport as requested, preserving existing tasks and connections."

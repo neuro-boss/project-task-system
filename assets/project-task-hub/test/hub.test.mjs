@@ -32,7 +32,7 @@ async function fixture(t) {
   const core = await import(pathToFileURL(join(root, 'tools/taskplanner-yougile-core.mjs')));
   const local = core.parseTaskFile(await readFile(join(root, '.tasks/BACKLOG.md'), 'utf8'), 'Backlog')[0];
   const payload = core.buildYouGilePayload(local, undefined, config, false);
-  const cards = new Map([['remote-1', { id: 'remote-1', ...payload, assigned: ['a-client-user'], stickers: { 'client-sticker': 'retain' }, archived: true }]]);
+  const cards = new Map([['remote-1', { id: 'remote-1', ...transportPayload(payload), assigned: ['a-client-user'], stickers: { 'client-sticker': 'retain' }, archived: true }]]);
   const calls = []; let next = 1;
   const api = {
     async request(method, path, body) {
@@ -280,8 +280,8 @@ test('lead-magnet and module stickers are both updated; client stickers retained
 test('description transport preserves literal angle brackets and ampersands', () => {
   const original = { description: 'Keep <order[id]> & <example> and &lt;literal&gt;', columnId: 'same' };
   const sent = transportPayload(original);
-  assert.equal(sent.description, 'Keep &lt;order[id]&gt; &amp; &lt;example&gt; and &amp;lt;literal&amp;gt;');
-  assert.equal(matchesOwned({ description: sent.description, columnId: 'same' }, original), true);
+  assert.equal(sent.description, '<p>Keep &lt;order[id]&gt; &amp; &lt;example&gt; and &amp;lt;literal&amp;gt;</p>');
+  assert.equal(matchesOwned({ description: sent.description, columnId: 'same' }, sent), true);
   assert.equal(original.description, 'Keep <order[id]> & <example> and &lt;literal&gt;');
   assert.equal(sent.columnId, 'same');
 });
@@ -289,7 +289,7 @@ test('HTML sanitization does not remove source examples or cause repeated update
   const f = await fixture(t); const body = section('TASK-001', 'Existing task', 'Literal <order[id]> & value');
   await writeFile(join(f.root, '.tasks/BACKLOG.md'), `# Backlog\n\n${body}`);
   const request = f.api.request.bind(f.api);
-  f.api.request = (method, path, payload) => request(method, path, payload && { ...payload, description: payload.description?.replace(/<[^>]+>/g, '') });
+  f.api.request = (method, path, payload) => request(method, path, payload && { ...payload, description: payload.description?.replace(/<(?!\/?(?:p|strong|br)\b)[^>]+>/gi, '') });
   const first = await syncProject(f.home, f.project, { apply: true, api: f.api }); assert.equal(first.updated, 1);
   assert.match(f.cards.get('remote-1').description, /&lt;order\[id\]&gt;/);
   const audit = await syncProject(f.home, f.project, { apply: true, api: f.api, reconcile: true, maxWrites: 0 });
