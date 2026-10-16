@@ -5,6 +5,7 @@ import { canonical, normal, scan, findProject, updateRegistry } from './registry
 import { json, withLock, iso, safeError } from './storage.mjs';
 import { provision, adopt } from './provision.mjs';
 import { recordSync } from './sync.mjs';
+import { refreshPassport } from './passport-sync.mjs';
 
 const hub = dirname(dirname(fileURLToPath(import.meta.url)));
 export async function eligible(project, policy) {
@@ -38,7 +39,7 @@ export async function onboard(home, selector, settings, { apply = false, operati
   const project = await findProject(home, selector);
   const policy = settings.autoOnboarding;
   if (!await eligible(project, policy)) return { project: project.name, action: 'outside-auto-policy' };
-  if (project.enabled && !project.onboarding?.error) return { project: project.name, action: 'already-connected' };
+  if (project.enabled && !project.onboarding?.error) return { project: project.name, action: 'already-connected', passport: await (operations.passport || refreshPassport)(home, project, settings, { apply }) };
   if (!apply) return { project: project.name, action: project.configured ? 'adopt-existing-preview' : 'connect-new-preview', remoteWrites: 0, importHistory: false };
   try {
     return await withLock(join(home, `onboard-${project.id}.lock`), async () => {
@@ -50,7 +51,8 @@ export async function onboard(home, selector, settings, { apply = false, operati
       await (operations.adopt || adopt)(home, project.id, settings, { apply: true });
       await (operations.sync || recordSync)(home, await findProject(home, project.id), { apply: true, maxWrites: settings.maxWritesPerProject || 30 });
       await updateRegistry(home, r => { r.projects.find(p => p.id === project.id).onboarding = { state: 'connected', completedAt: iso() }; });
-      return { project: project.name, action: 'connected', importHistory: false };
+      const passport = await (operations.passport || refreshPassport)(home, await findProject(home, project.id), settings, { apply: true });
+      return { project: project.name, action: 'connected', importHistory: false, passport };
     });
   } catch (error) {
     if (error.code === 'BUSY') return { project: project.name, action: 'busy' };

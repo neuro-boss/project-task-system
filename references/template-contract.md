@@ -41,3 +41,17 @@ appends necessary ignore entries, with backups. Remote operations are journaled 
 idempotent; retries never delete cards or import historical Done tasks in bulk.
 Customized runtime files stop an upgrade before writes; a pointer to a different
 hub is preserved unless the user explicitly opts to replace it.
+
+## Passport lifecycle
+
+With passports.enabled, connected enabled projects receive a create-only
+docs/project-passport.md draft and a local revision queue. Existing passports
+are never overwritten by the runtime. Important-document hashes trigger semantic
+agent review; no task/status churn is published into the passport. Publication is
+separately authorized with passports.publisherEnabled and an MCP publisher with conditional OS-script wakeup;
+local export never implies remote publication. Preserve existing page bindings,
+manual additions and source revision checks. No personal passport/state is bundled.
+
+Conditional wake is opt-in through passports.wake and targets an existing chat.
+An empty queue never invokes the CLI/model. Preserve queued request receipts,
+start/finish acknowledgement and retry limits; pause any unconditional heartbeat.

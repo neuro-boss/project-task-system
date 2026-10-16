@@ -52,6 +52,13 @@ standalone connector over a hub bridge or request the same approval/key again.
 Report pending connection on failure; hourly fallback retries inside approved
 roots. Task edits still require the immediate sync command in project rules.
 
+Keep responsibilities separate: REST API synchronizes managed tasks from `.tasks`;
+official YouGile MCP publishes knowledge-base passports after semantic review.
+An hourly script checks pending work without a model; invoke Codex only for a
+nonempty authorized passport queue. Read [how it works](references/how-it-works.ru.md)
+when explaining or configuring this split. Do not bypass the local task source
+by editing managed task fields through MCP.
+
 ## Resources
 
 - Read [references/installation.md](references/installation.md) when installing the skill or publishing it for reuse.
@@ -68,5 +75,13 @@ change YouGile destinations just to produce a report. Default reports cover all
 registered projects; pass the requested project explicitly when scoped. State the
 actual calendar interval and coverage gaps; never infer hours from task estimates.
 After non-task research/decisions/blockers, record a short confirmed note through
-`log`; Done and WORK_LOG are collected automatically. Maintain an existing
-`docs/project-passport.md` when public links or confirmed operating facts change.
+`log`; Done and WORK_LOG are collected automatically. Maintain `docs/project-passport.md` when public links or confirmed operating facts
+change. Hub 0.6 creates a draft on onboarding and queues important-document changes. Publish through official YouGile MCP with OAuth, reviewed Markdown, stable page IDs, conflict checks and readback; see PASSPORT-WORKER.md. Keep one hourly script fallback.
+When automatic passport publication is authorized and enabled locally, follow the
+runtime PASSPORT-WORKER.md to update the existing YouGile knowledge-base page,
+preserve manual additions, verify by MCP readback and acknowledge the source revision.
+For conditional publication, let the hourly OS tick inspect pending work without AI
+and use codex queue only when it is nonempty. Configure passports.wake for an
+existing chat; pause the unconditional heartbeat through automation_update.
+Preserve start/finish receipts and duplicate protection. Do not claim publication
+from an HTML export.

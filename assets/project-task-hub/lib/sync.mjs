@@ -6,6 +6,7 @@ import { Api } from './api.mjs';
 import { decodeMapping, saveMappingEntry } from './project-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
 import { collectActivity } from './activity.mjs';
+import { refreshPassport } from './passport-sync.mjs';
 
 function inside(root, filename) {
   const path = resolve(root, filename); const rel = relative(root, path);
@@ -305,11 +306,17 @@ export async function recordSync(home, project, options) {
   const statusPath = join(home, `status-${project.id}.json`);
   const status = await json(statusPath, {});
   let activityError;
+  let passport;
+  if (options.apply) {
+    try { passport = await refreshPassport(home, project, await json(join(home, 'settings.json'), {}), { apply: true }); }
+    catch (error) { passport = { error: safeError(error) }; }
+  }
   if (options.apply && options.maxWrites !== 0) {
     try { await collectActivity(home, project, { apply: true }); } catch (error) { activityError = safeError(error); }
   }
   try {
     const result = await syncProject(home, project, options);
+    if (passport && passport.mode !== 'disabled') result.passport = passport;
     if (activityError) result.activityError = activityError;
     if (options.apply) await atomicJson(statusPath, { ...status, lastAttemptAt: iso(), lastSuccessAt: iso(), failures: 0, nextAttemptAt: null, error: null, result });
     return result;

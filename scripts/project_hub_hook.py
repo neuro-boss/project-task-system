@@ -26,6 +26,11 @@ def run_hub_hook(target: Path, applying: bool) -> None:
         else:
             report = json.loads(result.stdout)
             print('YouGile: ' + report.get('action', 'checked'))
+            passport = report.get('passport', {})
+            if passport.get('mode') == 'pending':
+                print('Passport: local changes queued. Publisher enabled: ' + str(bool(passport.get('publisherEnabled'))))
+                if passport.get('publisherEnabled'):
+                    print('Continue passport publication using ' + str(Path(config['cli']).parent / 'PASSPORT-WORKER.md'))
     except (OSError, ValueError, KeyError, subprocess.TimeoutExpired):
         # Do not echo output or exceptions which could contain private service responses.
         print('YouGile: local hook unavailable; hourly discovery retries projects inside approved roots.')

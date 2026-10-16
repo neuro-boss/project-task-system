@@ -67,6 +67,8 @@ def prepare(args):
     settings.update(schemaVersion=1, roots=list(dict.fromkeys(roots)), scanDepth=settings.get('scanDepth', 4), discoveryIntervalMs=3600000)
     settings.setdefault('minRequestIntervalMs', 2000)
     settings.setdefault('maxWritesPerProject', 30)
+    # Creating a local draft/queue is separate from authorizing an MCP publisher.
+    settings.setdefault('passports', {'enabled': True})
     policy = settings.setdefault('autoOnboarding', {})
     policy.update(enabled=True, roots=settings['roots'], profileFrom=str(profile), assets=str(root / 'vendor/yougile'), python=sys.executable)
     pointer = args.pointer.expanduser().resolve()

@@ -9,6 +9,9 @@ import { registerAndOnboard, onboardDiscovered } from './lib/onboarding.mjs';
 import { collectActivity, addActivity } from './lib/activity.mjs';
 import { generateReport } from './lib/reports.mjs';
 import { exportPassport } from './lib/passport.mjs';
+import { refreshPassport, pendingPassports, preparePassport, acknowledgePassport } from './lib/passport-sync.mjs';
+import { inspectMcpPassport, publishMcpPassport } from './lib/passport-mcp.mjs';
+import { wakePassports, transitionWake } from './lib/passport-wake.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -24,6 +27,11 @@ async function tick(settings) {
     if (shouldScan) await scan(home, settings.roots, settings.scanDepth || 4);
     const onboarding = await onboardDiscovered(home, settings, { apply: true });
     const registry = await json(join(home, 'registry.json'));
+    const passports = [];
+    for (const project of registry.projects.filter(p => p.enabled)) {
+      try { passports.push(await refreshPassport(home, project, settings, { apply: true })); }
+      catch (error) { passports.push({ project: project.name, error: safeError(error) }); }
+    }
     const activity = [];
     for (const project of registry.projects.filter(p => !p.enabled)) {
       try { activity.push(await collectActivity(home, project, { apply: true, timeZone: settings.reportTimeZone })); }
@@ -39,17 +47,38 @@ async function tick(settings) {
     let report;
     try { report = await generateReport(home, registry.projects, { period: 'day', timeZone: settings.reportTimeZone, archive: false }); }
     catch (error) { report = { error: safeError(error) }; }
-    const heartbeat = { at: iso(), lastScanAt: shouldScan ? iso() : previous.lastScanAt, onboarding, activity, report, results };
+    let passportWake;
+    try { passportWake = await wakePassports(home, registry.projects, settings, { apply: true, root }); }
+    catch (error) { passportWake = { error: safeError(error) }; }
+    const heartbeat = { at: iso(), lastScanAt: shouldScan ? iso() : previous.lastScanAt, onboarding, activity, report, results, passports, passportWake };
     await atomicJson(join(home, 'heartbeat.json'), heartbeat);
-    if ([...results, ...onboarding, report].some(r => r.error)) process.exitCode = 1;
+    if ([...results, ...onboarding, ...passports, report, passportWake].some(r => r.error)) process.exitCode = 1;
     return heartbeat;
   });
 }
 async function main() {
   const command = args[0] || 'status';
-  if (command === 'help' || flag('--help')) return output({ commands: ['scan', 'status', 'onboard --project PATH [--apply]', 'adopt --project PATH [--apply]', 'connect --project PATH --profile-from PATH --assets PATH [--apply]', 'sync --project PATH [--task ID] [--apply] [--reconcile]', 'tick --apply', 'collect [--project PATH|all] [--apply]', 'log --project PATH --summary TEXT [--kind research|decision|progress|blocker|release|check] [--apply]', 'report [--project PATH|all] [--period day|week|month] [--date YYYY-MM-DD] [--from YYYY-MM-DD --to YYYY-MM-DD]', 'passport --project PATH', 'disable --project PATH --apply'], home });
+  if (command === 'help' || flag('--help')) return output({ commands: ['scan', 'status', 'onboard --project PATH [--apply]', 'adopt --project PATH [--apply]', 'connect --project PATH --profile-from PATH --assets PATH [--apply]', 'sync --project PATH [--task ID] [--apply] [--reconcile]', 'tick --apply', 'collect [--project PATH|all] [--apply]', 'log --project PATH --summary TEXT [--kind research|decision|progress|blocker|release|check] [--apply]', 'report [--project PATH|all] [--period day|week|month] [--date YYYY-MM-DD] [--from YYYY-MM-DD --to YYYY-MM-DD]', 'passport --project PATH [--refresh --apply] [--ack RECEIPT --apply]', 'passport --pending', 'passport --wake [--apply]', 'passport --wake-start ID --apply', 'passport --wake-finish ID --apply', 'passport --project PATH --mcp-read [--out INSPECTION]', 'passport --project PATH --mcp-publish REVIEW [--apply]', 'disable --project PATH --apply'], home });
   const settings = await json(settingsPath, { roots: [], minRequestIntervalMs: 1800, scanDepth: 4 });
-  if (command === 'passport') return output(await exportPassport(home, await findProject(home, option('--project')), { out: option('--out') }));
+  if (command === 'passport') {
+    if (option('--wake-start') || option('--wake-finish')) return output(await transitionWake(home, option('--wake-start') || option('--wake-finish'), option('--wake-start') ? 'start' : 'finish', { apply: flag('--apply') }));
+    if (flag('--wake')) return output(await wakePassports(home, (await json(join(home, 'registry.json'))).projects, settings, { apply: flag('--apply'), root }));
+    if (flag('--pending')) {
+      const selector = option('--project');
+      const projects = selector && selector !== 'all' ? [await findProject(home, selector)] : (await json(join(home, 'registry.json'))).projects;
+      return output(await pendingPassports(home, projects, settings));
+    }
+    const project = await findProject(home, option('--project'));
+    if (flag('--mcp-read')) {
+      const result = await inspectMcpPassport(home, project, settings);
+      if (option('--out')) { await atomicJson(resolve(option('--out')), result); return output({ saved: resolve(option('--out')), project: project.name, revision: result.revision, remoteFingerprint: result.remoteFingerprint }); }
+      return output(result);
+    }
+    if (option('--mcp-publish')) return output(await publishMcpPassport(home, project, settings, await json(resolve(option('--mcp-publish'))), { apply: flag('--apply') }));
+    if (option('--ack')) return output(await acknowledgePassport(home, project, settings, await json(resolve(option('--ack'))), { apply: flag('--apply') }));
+    if (flag('--refresh')) return output(await preparePassport(home, project, settings, { apply: flag('--apply') }));
+    return output(await exportPassport(home, project, { out: option('--out') }));
+  }
   if (command === 'collect' || command === 'report') {
     const selector = option('--project');
     const projects = selector && selector !== 'all' ? [await findProject(home, selector)] : (await json(join(home, 'registry.json'))).projects;

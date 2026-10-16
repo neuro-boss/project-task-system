@@ -39,3 +39,11 @@ Upgrade a runtime with the same installer and arguments after stopping its sched
 job; customized runtime files are preserved for review. Re-enable the existing
 Windows schedule with --schedule after checking the preview. Never publish a
 user's pointer, .local directory, company configuration, maps, keys or private logs.
+
+Hub 0.6.0 includes MCP passport publication and conditional Codex wakeup. Ship
+PASSPORT-WORKER.md and the passport-sync/passport-mcp/passport-wake/codex-mcp
+modules with the runtime. Explain the API/MCP split using
+[how-it-works.ru.md](how-it-works.ru.md). Do not enable a model heartbeat as part
+of installation: a separately authorized hourly script dispatches an existing
+chat only when the passport queue is nonempty. MCP OAuth, company URL, chat ID,
+CLI path and publication policy are configured locally by each installation.
