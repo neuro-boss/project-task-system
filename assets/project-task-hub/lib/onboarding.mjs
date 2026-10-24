@@ -6,6 +6,7 @@ import { json, withLock, iso, safeError } from './storage.mjs';
 import { provision, adopt } from './provision.mjs';
 import { recordSync } from './sync.mjs';
 import { refreshPassport } from './passport-sync.mjs';
+import { initializeProject } from './saved-projects.mjs';
 
 const hub = dirname(dirname(fileURLToPath(import.meta.url)));
 export async function eligible(project, policy) {
@@ -82,6 +83,7 @@ export async function registerAndOnboard(home, path, settings, options = {}) {
   if (!options.apply) {
     return { action: 'onboard-preview', remoteWrites: 0 };
   }
+  await initializeProject(home, path);
   await scan(home, [path], 0);
   return onboard(home, path, settings, options);
 }

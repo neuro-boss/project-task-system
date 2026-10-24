@@ -71,6 +71,7 @@ def prepare(args):
     settings.setdefault('passports', {'enabled': True})
     policy = settings.setdefault('autoOnboarding', {})
     policy.update(enabled=True, roots=settings['roots'], profileFrom=str(profile), assets=str(root / 'vendor/yougile'), python=sys.executable)
+    policy.setdefault('savedProjects', {'enabled': True, 'binary': 'auto'})
     pointer = args.pointer.expanduser().resolve()
     old_pointer = read_json(pointer, {})
     if old_pointer and Path(old_pointer.get('home', '')).resolve() != home and not args.replace_pointer:
@@ -87,6 +88,17 @@ def prepare(args):
         data = source.read_bytes()
         if destination.exists() and destination.read_bytes() != data and digest(destination.read_bytes()) != owned.get(name):
             raise SetupError('Customized runtime file preserved; review before upgrading: ' + name)
+        files[name] = data
+    # Standalone runtime can initialize a newly saved Codex project without the skill installed.
+    template = BUNDLE.parent / 'project-template'
+    for source in template.rglob('*'):
+        if not source.is_file() or source.relative_to(template).parts[0] == '.github':
+            continue
+        name = 'project-template/' + source.relative_to(template).as_posix()
+        destination = root / name
+        data = source.read_bytes()
+        if destination.exists() and destination.read_bytes() != data and digest(destination.read_bytes()) != owned.get(name):
+            raise SetupError('Customized project template preserved; review before upgrading: ' + name)
         files[name] = data
     return root, home, pointer, node, settings, files
 
@@ -132,6 +144,12 @@ def install(args) -> int:
             return 1
     settings['autoOnboarding'].setdefault('excludedProjectIds', [p['id'] for p in registry['projects'] if not p['enabled'] and not p['configured']])
     atomic_json(home / 'settings.json', settings)
+    # Metadata RPC only; no inference or YouGile writes. Baseline before future projects appear.
+    if settings['autoOnboarding'].get('savedProjects', {}).get('enabled'):
+        try:
+            subprocess.run([node, str(root / 'cli.mjs'), 'discover-saved', '--home', str(home), '--apply'], capture_output=True, timeout=60)
+        except subprocess.TimeoutExpired:
+            print('Saved Codex project inventory unavailable; the first successful hourly discovery will establish its baseline.')
     atomic_json(home / 'installed-files.json', dict(schemaVersion=1, files={name: digest(data) for name, data in files.items()}))
     atomic_json(pointer, dict(schemaVersion=1, enabled=True, node=node, cli=str(root / 'cli.mjs'), home=str(home)))
     if args.schedule:

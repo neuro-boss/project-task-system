@@ -1,10 +1,11 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { fail } from './storage.mjs';
+import { resolveCodexBinary } from './codex-binary.mjs';
 
 // Codex handles OAuth/renewal in its existing secure store. This client never reads tokens.
 export class CodexMcp {
-  constructor({ binary = process.env.CODEX_CLI_PATH || 'codex', server = 'yougile', cwd, timeoutMs = 60_000 } = {}) {
+  constructor({ binary = 'auto', server = 'yougile', cwd, timeoutMs = 60_000 } = {}) {
     this.binary = binary; this.server = server; this.cwd = cwd; this.timeoutMs = timeoutMs;
     this.requests = new Map(); this.sequence = 0;
   }
@@ -18,8 +19,8 @@ export class CodexMcp {
       });
     });
   }
-  async start() {
-    this.child = spawn(this.binary, ['app-server'], { cwd: this.cwd, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+  async start({ knowledgeBase = true } = {}) {
+    this.child = spawn(await resolveCodexBinary(this.binary), ['app-server'], { cwd: this.cwd, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     const stop = () => {
       for (const p of this.requests.values()) { clearTimeout(p.timer); p.reject(Object.assign(new Error('Codex MCP transport could not start or stopped.'), { code: 'MCP_TRANSPORT', safe: true })); }
       this.requests.clear();
@@ -37,6 +38,7 @@ export class CodexMcp {
     try {
       await this.request('initialize', { clientInfo: { name: 'project_passport_mcp', version: '0.5.0' }, capabilities: { experimentalApi: true } });
       this.child.stdin.write(JSON.stringify({ method: 'initialized', params: {} }) + '\n');
+      if (!knowledgeBase) return this; // Metadata only: no thread, MCP calls or inference.
       // An in-memory transport context only: no turn/start, inference or saved sidebar chat.
       const context = await this.request('thread/start', { ephemeral: true, cwd: this.cwd });
       this.context = context.thread.id;

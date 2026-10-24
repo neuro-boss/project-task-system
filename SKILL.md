@@ -50,7 +50,10 @@ authorized policy, run the usual preview/apply workflow: the post-apply hook
 preserves existing connections or provisions a new board. Do not reinstall a
 standalone connector over a hub bridge or request the same approval/key again.
 Report pending connection on failure; hourly fallback retries inside approved
-roots. Task edits still require the immediate sync command in project rules.
+roots. Hourly saved-project discovery also initializes newly saved Codex projects
+without `.tasks` inside approved roots; its initial baseline preserves older
+unconfigured projects. Use `binary: "auto"` for metadata, MCP and wake transports
+to survive desktop app upgrades. Task edits still require the immediate sync command in project rules.
 
 Keep responsibilities separate: REST API synchronizes managed tasks from `.tasks`;
 official YouGile MCP publishes knowledge-base passports after semantic review.

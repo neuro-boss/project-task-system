@@ -42,6 +42,15 @@ idempotent; retries never delete cards or import historical Done tasks in bulk.
 Customized runtime files stop an upgrade before writes; a pointer to a different
 hub is preserved unless the user explicitly opts to replace it.
 
+The persistent runtime includes project templates for opted-in saved-project
+discovery. Its metadata-only `project/list` baseline skips older unconfigured
+paths; future saved projects inside approved roots receive only missing board,
+document and profile files. Existing profiles get missing blocks appended with a
+backup, never refreshed implicitly. A pre-existing partial `.tasks` without config
+is preserved for review. Explicit `onboard --apply` can initialize a missing board.
+No GitHub template is added by this lightweight hourly initializer. Discovery and
+MCP/wake resolve the current executable dynamically instead of pinning build hashes.
+
 ## Passport lifecycle
 
 With passports.enabled, connected enabled projects receive a create-only

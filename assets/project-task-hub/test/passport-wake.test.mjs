@@ -78,5 +78,5 @@ test('CLI transport uses literal arguments, hidden process and no approval bypas
   await queueCodex({ binary: 'codex.exe', threadId: 'chat', message, cwd: 'project' }, async (binary, args, options) => {
     assert.equal(binary, 'codex.exe'); assert.deepEqual(args, ['queue', '--thread', 'chat', '--message', message]);
     assert.equal(options.windowsHide, true); assert.equal(options.shell, undefined);
-  });
+  }, async value => value);
 });

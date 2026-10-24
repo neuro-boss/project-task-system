@@ -4,13 +4,14 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { json, atomicJson, withLock, digest, fail, safeError } from './storage.mjs';
 import { pendingPassports } from './passport-sync.mjs';
+import { resolveCodexBinary } from './codex-binary.mjs';
 
 const execute = promisify(execFile);
 const stateFile = home => join(home, 'passports', 'wake.json');
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-export async function queueCodex({ binary, threadId, message, cwd }, run = execute) {
+export async function queueCodex({ binary, threadId, message, cwd }, run = execute, resolveBinary = resolveCodexBinary) {
   // Argument array, hidden process, no shell interpolation and no permission overrides.
-  await run(binary, ['queue', '--thread', threadId, '--message', message], { cwd, windowsHide: true, timeout: 30_000, maxBuffer: 64 * 1024 });
+  await run(await resolveBinary(binary), ['queue', '--thread', threadId, '--message', message], { cwd, windowsHide: true, timeout: 30_000, maxBuffer: 64 * 1024 });
 }
 function prompt(root, id) {
   return `Обнаружена непустая очередь паспортов Project Task Hub. Идентификатор запроса: ${id}. Рабочая папка: ${JSON.stringify(root)}. Сначала выполни node cli.mjs passport --wake-start ${id} --apply в этой папке. Продолжай только если mode=started; при stale/busy закончи тихо. Прочитай PASSPORT-WORKER.md и .local/settings.json, затем passport --pending. Обработай только разрешённые enabled проекты через официальный MCP по этому протоколу, сохраняя UUID/URL страниц, ссылки и ручные дополнения. За этот запуск одна попытка на проект; при конфликте или недоступности сохрани pending. Не меняй расписания и не запускай повторный запрос агенту. В конце, в том числе при ошибке, выполни node cli.mjs passport --wake-finish ${id} --apply. Сообщай только о существенном обновлении, новой ошибке или необходимом решении; одинаковые ошибки не повторяй.`;

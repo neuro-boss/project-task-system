@@ -12,6 +12,7 @@ import { exportPassport } from './lib/passport.mjs';
 import { refreshPassport, pendingPassports, preparePassport, acknowledgePassport } from './lib/passport-sync.mjs';
 import { inspectMcpPassport, publishMcpPassport } from './lib/passport-mcp.mjs';
 import { wakePassports, transitionWake } from './lib/passport-wake.mjs';
+import { discoverSavedProjects, discoveryDue } from './lib/saved-projects.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -23,7 +24,9 @@ const settingsPath = join(home, 'settings.json');
 async function tick(settings) {
   return withLock(join(home, 'tick.lock'), async () => {
     const previous = await json(join(home, 'heartbeat.json'), {});
-    const shouldScan = !previous.lastScanAt || Date.now() - Date.parse(previous.lastScanAt) >= (settings.discoveryIntervalMs || 3_600_000);
+    const scanStartedAt = iso();
+    const shouldScan = discoveryDue(previous.lastScanAt, Date.parse(scanStartedAt), settings.discoveryIntervalMs || 3_600_000);
+    const savedProjects = shouldScan ? await discoverSavedProjects(home, settings, { apply: true }) : { mode: 'not-due' };
     if (shouldScan) await scan(home, settings.roots, settings.scanDepth || 4);
     const onboarding = await onboardDiscovered(home, settings, { apply: true });
     const registry = await json(join(home, 'registry.json'));
@@ -50,16 +53,17 @@ async function tick(settings) {
     let passportWake;
     try { passportWake = await wakePassports(home, registry.projects, settings, { apply: true, root }); }
     catch (error) { passportWake = { error: safeError(error) }; }
-    const heartbeat = { at: iso(), lastScanAt: shouldScan ? iso() : previous.lastScanAt, onboarding, activity, report, results, passports, passportWake };
+    const heartbeat = { at: iso(), lastScanAt: shouldScan ? scanStartedAt : previous.lastScanAt, savedProjects, onboarding, activity, report, results, passports, passportWake };
     await atomicJson(join(home, 'heartbeat.json'), heartbeat);
-    if ([...results, ...onboarding, ...passports, report, passportWake].some(r => r.error)) process.exitCode = 1;
+    if ([savedProjects, ...results, ...onboarding, ...passports, report, passportWake].some(r => r.error)) process.exitCode = 1;
     return heartbeat;
   });
 }
 async function main() {
   const command = args[0] || 'status';
-  if (command === 'help' || flag('--help')) return output({ commands: ['scan', 'status', 'onboard --project PATH [--apply]', 'adopt --project PATH [--apply]', 'connect --project PATH --profile-from PATH --assets PATH [--apply]', 'sync --project PATH [--task ID] [--apply] [--reconcile]', 'tick --apply', 'collect [--project PATH|all] [--apply]', 'log --project PATH --summary TEXT [--kind research|decision|progress|blocker|release|check] [--apply]', 'report [--project PATH|all] [--period day|week|month] [--date YYYY-MM-DD] [--from YYYY-MM-DD --to YYYY-MM-DD]', 'passport --project PATH [--refresh --apply] [--ack RECEIPT --apply]', 'passport --pending', 'passport --wake [--apply]', 'passport --wake-start ID --apply', 'passport --wake-finish ID --apply', 'passport --project PATH --mcp-read [--out INSPECTION]', 'passport --project PATH --mcp-publish REVIEW [--apply]', 'disable --project PATH --apply'], home });
+  if (command === 'help' || flag('--help')) return output({ commands: ['scan', 'discover-saved [--apply]', 'status', 'onboard --project PATH [--apply]', 'adopt --project PATH [--apply]', 'connect --project PATH --profile-from PATH --assets PATH [--apply]', 'sync --project PATH [--task ID] [--apply] [--reconcile]', 'tick --apply', 'collect [--project PATH|all] [--apply]', 'log --project PATH --summary TEXT [--kind research|decision|progress|blocker|release|check] [--apply]', 'report [--project PATH|all] [--period day|week|month] [--date YYYY-MM-DD] [--from YYYY-MM-DD --to YYYY-MM-DD]', 'passport --project PATH [--refresh --apply] [--ack RECEIPT --apply]', 'passport --pending', 'passport --wake [--apply]', 'passport --wake-start ID --apply', 'passport --wake-finish ID --apply', 'passport --project PATH --mcp-read [--out INSPECTION]', 'passport --project PATH --mcp-publish REVIEW [--apply]', 'disable --project PATH --apply'], home });
   const settings = await json(settingsPath, { roots: [], minRequestIntervalMs: 1800, scanDepth: 4 });
+  if (command === 'discover-saved') return output(await discoverSavedProjects(home, settings, { apply: flag('--apply') }));
   if (command === 'passport') {
     if (option('--wake-start') || option('--wake-finish')) return output(await transitionWake(home, option('--wake-start') || option('--wake-finish'), option('--wake-start') ? 'start' : 'finish', { apply: flag('--apply') }));
     if (flag('--wake')) return output(await wakePassports(home, (await json(join(home, 'registry.json'))).projects, settings, { apply: flag('--apply'), root }));

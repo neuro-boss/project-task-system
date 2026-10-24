@@ -1,13 +1,13 @@
 {
   "name": "project-task-hub",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test test/hub.test.mjs test/onboarding.test.mjs test/markdown.test.mjs test/activity.test.mjs test/passport.test.mjs test/passport-mcp.test.mjs test/passport-wake.test.mjs",
+    "test": "node --test test/*.test.mjs",
     "status": "node cli.mjs status",
     "sync": "node cli.mjs sync --apply"
   }

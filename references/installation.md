@@ -40,10 +40,18 @@ job; customized runtime files are preserved for review. Re-enable the existing
 Windows schedule with --schedule after checking the preview. Never publish a
 user's pointer, .local directory, company configuration, maps, keys or private logs.
 
-Hub 0.6.0 includes MCP passport publication and conditional Codex wakeup. Ship
-PASSPORT-WORKER.md and the passport-sync/passport-mcp/passport-wake/codex-mcp
-modules with the runtime. Explain the API/MCP split using
+Hub 0.6.1 adds saved-project discovery without `.tasks` and dynamic Codex executable
+resolution after desktop upgrades. Ship PASSPORT-WORKER.md and the
+passport-sync/passport-mcp/passport-wake/codex-mcp/codex-binary/saved-projects
+modules with the runtime. The installer also copies `assets/project-template/`
+into the persistent runtime, excluding `.github`, so hourly initialization does
+not depend on the installed skill directory. First discovery records older saved
+paths without connecting them in bulk; future projects remain bounded by approved
+roots and manual exclusions. Explain the API/MCP split using
 [how-it-works.ru.md](how-it-works.ru.md). Do not enable a model heartbeat as part
 of installation: a separately authorized hourly script dispatches an existing
 chat only when the passport queue is nonempty. MCP OAuth, company URL, chat ID,
-CLI path and publication policy are configured locally by each installation.
+executable policy and publication policy are configured locally by each installation.
+Use `binary: "auto"` for saved-project metadata, MCP and wake transports. On Windows
+the resolver checks the current desktop installation as well as the environment
+and PATH; unavailable Codex leaves pending work for a later hourly attempt.
